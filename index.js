@@ -5,6 +5,24 @@ const fs = require("fs");
 const client = new Discord.Client();
 client.cooldowns = new Discord.Collection();
 
+//Start parse mentions properly
+function getUserFromMention(message, mention) {
+  if (!mention) return;
+
+  if (mention.startsWith("<@") && mention.endsWith(">")) {
+    mention = mention.slice(2, -1);
+
+    if (mention.startsWith("!")) {
+      mention = mention.slice(1);
+    }
+    return message.guild.member(mention);
+  } else {
+    //If mention does not contain an actual mention, send error code to command being executed
+    return -1;
+  }
+}
+//End parse mentions properly
+
 //Start Command Handler
 client.commands = new Discord.Collection();
 const commandFolders = fs.readdirSync("./commands");
@@ -34,6 +52,7 @@ client.on("message", (message) => {
 
   const args = message.content.slice(prefix.length).trim().split(/ +/);
   const commandName = args.shift().toLowerCase();
+  let mentionedMember = "init mention";
 
   const command =
     client.commands.get(commandName) ||
@@ -49,6 +68,7 @@ client.on("message", (message) => {
 
   if (command.permissions) {
     const authorPerms = message.channel.permissionsFor(message.author);
+
     if (!authorPerms || !authorPerms.has(command.permissions)) {
       return message.reply("You can not do this!");
     }
@@ -61,6 +81,11 @@ client.on("message", (message) => {
     }
 
     return message.channel.send(reply);
+  }
+
+  if (command.args && args.length && command.mentionRequired) {
+    //if args require a mention, parse it properly
+    mentionedMember = getUserFromMention(message, args[0]);
   }
 
   //Start cooldowns
@@ -92,7 +117,7 @@ client.on("message", (message) => {
   //End cooldowns
 
   try {
-    command.execute(message, args);
+    command.execute(message, args, mentionedMember);
   } catch (error) {
     console.error(error);
     message.reply("there was an error trying to execute that command!");
