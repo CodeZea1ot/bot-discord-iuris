@@ -1,9 +1,47 @@
 const Discord = require("discord.js");
+const { prefix, token } = require("./config.json");
+const fs = require("fs");
+
 const client = new Discord.Client();
-const config = require("./config.json");
+
+//Start Command Handler
+client.commands = new Discord.Collection();
+
+const commandFiles = fs
+  .readdirSync("./commands")
+  .filter((file) => file.endsWith(".js"));
+
+for (const file of commandFiles) {
+  const command = require(`./commands/${file}`);
+
+  client.commands.set(command.name, command);
+}
+
+//End Command Handler
 
 client.once("ready", () => {
-  console.log("Ready!");
+  console.log("Iuris is online!");
+  client.user
+    .setActivity("for law breakers", { type: "WATCHING" })
+    .catch(console.error);
 });
 
-client.login(config.token);
+//Start on message
+client.on("message", (message) => {
+  if (!message.content.startsWith(prefix) || message.author.bot) return;
+
+  const args = message.content.slice(prefix.length).trim().split(/ +/);
+  const command = args.shift().toLowerCase();
+
+  if (!client.commands.has(command)) return;
+
+  try {
+    client.commands.get(command).execute(message, args);
+  } catch (error) {
+    console.error(error);
+    message.reply("there was an error trying to execute that command!");
+  }
+});
+//End on message
+
+client.login(token);
