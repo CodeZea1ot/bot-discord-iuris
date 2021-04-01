@@ -4,6 +4,7 @@ module.exports = {
   args: true,
   usage: "<arg1> <arg2> ...",
   guildOnly: true,
+  aliases: ["args", "argsinfo", "arg-info"],
   execute(message, args) {
     if (args[0] === "foo") {
       return message.channel.send("bar");
